@@ -70,6 +70,9 @@ class ServerPaginator(discord.ui.View):
     def update_view(self):
         self.clear_items()
         
+        current_server = self.servers[self.current_index]
+        server_id = current_server.get("id", "")
+
         # 1. ប៊ូតុង Previous
         prev_button = discord.ui.Button(
             label="⬅️ មុន", 
@@ -79,11 +82,12 @@ class ServerPaginator(discord.ui.View):
         prev_button.callback = self.prev_callback
         self.add_item(prev_button)
 
-        # 2. ប៊ូតុង Join Server (Link Button)
+        # 2. ប៊ូតុង Join Server ចូលចំ Server ហ្នឹងផ្ទាល់ (តាម Job ID)
+        join_url = f"https://www.roblox.com/games/start?placeId={PLACE_ID}&gameInstanceId={server_id}"
         join_button = discord.ui.Button(
             label="🎮 Join Server", 
             style=discord.ButtonStyle.url, 
-            url=f"https://www.roblox.com/games/{PLACE_ID}"
+            url=join_url
         )
         self.add_item(join_button)
 
@@ -154,4 +158,3 @@ async def on_ready():
 
 if __name__ == "__main__":
     bot.run(TOKEN)
-
