@@ -1,4 +1,6 @@
 import os
+import asyncio
+import aiohttp
 import discord
 from discord.ext import commands
 
@@ -6,25 +8,33 @@ TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
     raise SystemExit("Missing DISCORD_TOKEN. Add it in GitHub: Settings > Secrets and variables > Actions")
 
+# Steal an Egg place ID (can be overridden with a PLACE_ID env var)
+PLACE_ID = 107778070777162
+API_URL = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public"
+
 intents = discord.Intents.default()
 intents.message_content = True  # also enable in Discord Developer Portal > Bot
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+class EggBot(commands.Bot):
+    async def setup_hook(self):
+        self.session = aiohttp.ClientSession(headers={"User-Agent": "Mozilla/5.0"})
+        await self.tree.sync()  # registers /servers (needs applications.commands scope to be visible)
+
+    async def close(self):
+        await self.session.close()
+        await super().close()
 
 
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user} (id: {bot.user.id})", flush=True)
+bot = EggBot(command_prefix="!", intents=intents)
 
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send("pong 🏓")
-
-
-@bot.command()
-async def hello(ctx):
-    await ctx.send(f"Hello, {ctx.author.display_name}!")
-
-
-bot.run(TOKEN)
+async def fetch_servers(session):
+    # sortOrder=Asc returns the servers with the fewest players first
+    params = {"sortOrder": "Asc", "limit": 100, "excludeFullGames": "true"}
+    for attempt in range(3):
+        async with session.get(API_URL, params=params) as r:
+            if r.status == 429:
+                await asyncio.sleep(2 * (attempt + 1))
+                continue
+            if r.status != 200:
