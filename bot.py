@@ -34,7 +34,7 @@ async def fetch_servers(session):
     params = {"sortOrder": "Asc", "limit": 100, "excludeFullGames": "true"}
     for attempt in range(3):
         async with session.get(API_URL, params=params) as r:
-            if r.status == 429:
-                await asyncio.sleep(2 * (attempt + 1))
-                continue
-            if r.status != 200:
+            status = r.status
+            data = await r.json() if status == 200 else {}
+        if status == 200: return data.get("data", [])
+        if status != 429: raise RuntimeError(f"Roblox API error {status}")
