@@ -1,1 +1,33 @@
 
+name: Run Telegram Bot
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '*/30 * * * *' # រត់ជាទៀងទាត់រៀងរាល់ 30 នាទី
+  workflow_dispatch: # អនុញ្ញាតឱ្យរត់ដោយដៃផ្ទាល់ផងដែរ
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run bot.py
+      run: |
+        python bot.py
