@@ -53,16 +53,10 @@ async def fetch_servers(session):
 
 
 def check_for_hackers(server_data):
-    # ពិនិត្យមើលសញ្ញាណ Hackers (ឧទាហរណ៍៖ Ping ຜິດប្រក្រតី, FPS ខ្ពស់ហួសហេតុ ឬ Player គួរឱ្យសង្ស័យ)
-    # លក្ខខណ្ឌនេះអាចកែច្នៃបន្ថែមតាមតម្រូវការជាក់ស្តែង
-    ping = server_data.get("ping", 0)
+    # ពិនិត្យមើលសញ្ញាណ Hackers (ឧទាហរណ៍៖ FPS ខ្ពស់ហួសហេតុ)
     fps = server_data.get("fps", 0)
-    playing_players = server_data.get("playerTokens", [])
-    
-    # ឧទាហរណ៍៖ បើ FPS លើស 1000 ឬ Ping លោតខុសប្រក្រតី អាចចាត់ទុកជាសង្ស័យថាមាន Hacker ឬ Bot
     if fps and fps > 999:
         return "⚠️ មានសង្ស័យ Hacker / Bot (FPS ผิดปกติ)"
-    
     return "✅ មិនមានសញ្ញាណ Hacker"
 
 
@@ -71,12 +65,48 @@ class ServerPaginator(discord.ui.View):
         super().__init__(timeout=180)
         self.servers = servers
         self.current_index = 0
-        self.update_buttons()
+        self.update_view()
 
-    def update_buttons(self):
-        # បិទ/បើកប៊ូតុង Next/Previous តាមទីតាំងបញ្ជី Server
-        self.prev_button.disabled = self.current_index == 0
-        self.next_button.disabled = self.current_index >= len(self.servers) - 1
+    def update_view(self):
+        self.clear_items()
+        
+        # 1. ប៊ូតុង Previous
+        prev_button = discord.ui.Button(
+            label="⬅️ មុន", 
+            style=discord.ButtonStyle.secondary, 
+            disabled=(self.current_index == 0)
+        )
+        prev_button.callback = self.prev_callback
+        self.add_item(prev_button)
+
+        # 2. ប៊ូតុង Join Server (Link Button)
+        join_button = discord.ui.Button(
+            label="🎮 Join Server", 
+            style=discord.ButtonStyle.url, 
+            url=f"https://www.roblox.com/games/{PLACE_ID}"
+        )
+        self.add_item(join_button)
+
+        # 3. ប៊ូតុង Next
+        next_button = discord.ui.Button(
+            label="➡️ បន្ទាប់", 
+            style=discord.ButtonStyle.secondary, 
+            disabled=(self.current_index >= len(self.servers) - 1)
+        )
+        next_button.callback = self.next_callback
+        self.add_item(next_button)
+
+    async def prev_callback(self, interaction: discord.Interaction):
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.update_view()
+            await interaction.response.edit_message(embed=self.create_embed(), view=self)
+
+    async def next_callback(self, interaction: discord.Interaction):
+        if self.current_index < len(self.servers) - 1:
+            self.current_index += 1
+            self.update_view()
+            await interaction.response.edit_message(embed=self.create_embed(), view=self)
 
     def create_embed(self):
         s = self.servers[self.current_index]
@@ -100,24 +130,6 @@ class ServerPaginator(discord.ui.View):
         embed.set_footer(text=f"Server ទី {self.current_index + 1} នៃ {len(self.servers)}")
         return embed
 
-    @discord.ui.button(label="⬅️ មុន", style=discord.ButtonStyle.secondary)
-    async def prev_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.current_index > 0:
-            self.current_index -= 1
-            self.update_buttons()
-            await interaction.response.edit_message(embed=self.create_embed(), view=self)
-
-    @discord.ui.button(label="🎮 Join Server", style=discord.ButtonStyle.link, url="https://www.roblox.com/games/107778070777162")
-    async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        pass  # ប៊ូតុងនេះប្រើសម្រាប់លោតទៅកាន់ហ្គេម Roblox ផ្ទាល់
-
-    @discord.ui.button(label="➡️ បន្ទាប់", style=discord.ButtonStyle.secondary)
-    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.current_index < len(self.servers) - 1:
-            self.current_index += 1
-            self.update_buttons()
-            await interaction.response.edit_message(embed=self.create_embed(), view=self)
-
 
 @bot.tree.command(name="servers", description="រកមើល Server ហ្គេម Steal an Egg ម្ដងមួយ និងពិនិត្យ Hacker")
 async def servers(interaction: discord.Interaction):
@@ -128,9 +140,7 @@ async def servers(interaction: discord.Interaction):
         await interaction.followup.send("❌ រកមិនឃើញ Server ឬមានបញ្ហាទាក់ទងនឹង Roblox API ទេ។", ephemeral=True)
         return
 
-    # យកត្រឹម 10 Server ដំបូងដែលមានអ្នកលេងតិចជាងគេ
     top_servers = servers_list[:10]
-    
     view = ServerPaginator(top_servers)
     embed = view.create_embed()
     
@@ -144,3 +154,4 @@ async def on_ready():
 
 if __name__ == "__main__":
     bot.run(TOKEN)
+
