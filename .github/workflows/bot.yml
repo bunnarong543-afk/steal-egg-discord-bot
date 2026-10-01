@@ -1,19 +1,13 @@
-
-name: Run Telegram Bot
+name: Run Discord Bot
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   schedule:
-    - cron: '*/30 * * * *' # រត់ជាទៀងទាត់រៀងរាល់ 30 នាទី
-  workflow_dispatch: # អនុញ្ញាតឱ្យរត់ដោយដៃផ្ទាល់ផងដែរ
+    - cron: '*/30 * * * *' # រត់រៀងរាល់ 30 នាទី
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - name: Check out repository
       uses: actions/checkout@v4
@@ -29,5 +23,7 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run bot.py
+      env:
+        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
       run: |
         python bot.py
