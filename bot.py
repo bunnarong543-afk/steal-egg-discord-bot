@@ -16,7 +16,7 @@ API_URL = f"https://games.roblox.com/v1/games/{PLACE_ID}/servers/Public"
 intents = discord.Intents.default()
 intents.message_content = True
 
-# Dictionary ដើម្បីទុករក្សាទុកសារចាស់របស់អ្នកប្រើប្រាស់សម្រាប់លុបពេលបញ្ជាថ្មី
+# Dictionary ដើម្បីរក្សាទុកសារចាស់របស់អ្នកប្រើប្រាស់សម្រាប់លុបពេលបញ្ជាថ្មី
 user_last_messages = {}
 
 
@@ -56,14 +56,14 @@ async def fetch_servers(session):
 
 
 def is_hacker(server_data):
-    # ពិនិត្យរកមើលសញ្ញាណ Hacker (បើមាន FPS ខុសប្រក្រតី ឬសង្ស័យ)
+    # ពិនិត្យរកមើលសញ្ញាណ Hacker (FPS ខុសប្រក្រតី)
     fps = server_data.get("fps", 0)
     if fps and fps > 999:
         return True
     return False
 
 
-@bot.tree.command(name="servers", description="ស្វែងរក Server ដែលមានមនុស្ស ១ នាក់គត់ មិនមាន Hacker និង Ping ល្អ")
+@bot.tree.command(name="servers", description="ស្វែងរក Server ដែលមានមនុស្សតិចបំផុត (១ ឬ ២ នាក់) គ្មាន Hacker")
 async def servers(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
     
@@ -82,19 +82,20 @@ async def servers(interaction: discord.Interaction):
         user_last_messages[user_id] = msg
         return
 
-    # ត្រងរក Server ណាដែលមានមនុស្ស ១ នាក់ (playing == 1) និងគ្មាន Hacker
+    # ត្រងរក Server ណាដែលគ្មាន Hacker និងមានមនុស្សពី ១ ដល់ ២ នាក់
     valid_servers = []
     for s in servers_list:
-        if s.get("playing") == 1 and not is_hacker(s):
+        playing = s.get("playing", 0)
+        if 1 <= playing <= 2 and not is_hacker(s):
             valid_servers.append(s)
 
     if not valid_servers:
-        msg = await interaction.followup.send("❌ រកមិនដែលមាន Server ទំនេរ ១ នាក់គត់ និងគ្មាន Hacker ទេ។ សូមព្យាយាមផ្ដេញម្ដងទៀត។", ephemeral=True)
+        msg = await interaction.followup.send("❌ ពេលនេះរកមិនមាន Server ទំនេរ ១-២ នាក់ទេ។ សូមវាយ /servers ម្ដងទៀតដើម្បីឆែកសាថ្មី។", ephemeral=True)
         user_last_messages[user_id] = msg
         return
 
-    # រៀបចំតម្រៀបយក Server ដែលមាន Ping ល្អបំផុត (ទាបជាងគេ)
-    valid_servers.sort(key=lambda x: x.get("ping", 999))
+    # តម្រៀបយក Server ដែលមានមនុស្សតិចជាងគេជាមុន (playing) បន្ទាប់មកយក Ping ល្អជាងគេ
+    valid_servers.sort(key=lambda x: (x.get("playing", 0), x.get("ping", 999)))
     
     # យក Server ល្អបំផុតដំបូងគេ
     s = valid_servers[0]
@@ -105,8 +106,8 @@ async def servers(interaction: discord.Interaction):
     server_id = s.get("id", "Unknown")
 
     embed = discord.Embed(
-        title=f"🌐 {TITLE} - Clean Server",
-        description="បានរកឃើញ Server ដែលមានមនុស្ស **១ នាក់** គត់ និងមាន Ping ល្អស្អាត៖",
+        title=f"🌐 {TITLE} - Best Low-Player Server",
+        description=f"បានរកឃើញ Server ដែលមានអ្នកលេង **{playing} នាក់** និង Ping ល្អស្អាត៖",
         color=discord.Color.green()
     )
     embed.add_field(name="👥 អ្នកលេង", value=f"{playing}/{max_players}", inline=True)
