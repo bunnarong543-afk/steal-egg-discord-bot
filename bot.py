@@ -1,4 +1,3 @@
-
 import os
 import aiohttp
 import discord
@@ -178,4 +177,3 @@ if not TOKEN:
     raise RuntimeError("DISCORD_TOKEN is missing!")
 
 bot.run(TOKEN)
-  
